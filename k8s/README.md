@@ -39,7 +39,7 @@ apps/
      - MinIO(conversation, content): `MINIO_ENDPOINT`, `MINIO_REGION`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`
      - OAuth·JWT(auth), 세션 키(web)는 각 서비스 `application-prod.yml` 기준
 3. GPU PC는 클러스터에 등록하지 않는다. GPU PC 워커가 게이트웨이의 워커 경로(`/internal/gpu-jobs/**`)로 작업을 가져간다(docs 아키텍처 8절). Ingress(`apps/web/ingress.yaml`)는 게이트웨이의 이 경로만 연다. GPU PC 워커의 `GPU_WORKER_API_URL`은 `https://4cut.java21.net` (HTTPS를 붙인 뒤. 토큰이 평문으로 다니지 않게 한다).
-4. Ingress는 `apps/web/ingress.yaml` (호스트 `4cut.java21.net`, `/` → web, `/internal/gpu-jobs` → api-gateway). Argo CD가 관리한다. HTTPS(cert-manager)는 정해지면 추가한다
+4. Ingress는 `apps/web/ingress.yaml` (호스트 `4cut.java21.net`, `/` → web, `/internal/gpu-jobs` → api-gateway). Argo CD가 관리한다. HTTPS는 앞단 nginx(storage.java21.net과 같은 서버, Let's Encrypt)가 처리하므로 클러스터에는 cert-manager가 없다. 앞단 nginx는 http→https 리디렉트, `Host`·`X-Forwarded-Proto` 전달, `client_max_body_size`(녹음 업로드 크기 이상)를 둔다
 5. 배포 지연 줄이기 (둘 중 하나)
    - Argo CD가 외부에서 접근되면: 이 레포 Settings → Webhooks에 `https://<argocd 주소>/api/webhook` (push 이벤트) 추가. 커밋 즉시 동기화된다.
    - 접근되지 않으면: `argocd-cm`에 `timeout.reconciliation: 60s`를 넣고 `argocd-repo-server`·`argocd-application-controller`를 재시작한다. 최대 1분.
