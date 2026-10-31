@@ -11,4 +11,4 @@ configMapGenerator:
 images:
   - name: app
     newName: ghcr.io/4cut-story/content-service
-    newTag: bootstrap   # 첫 CI 빌드가 커밋 sha로 바꾼다
+    newTag: bootstrap   # sync-images 워크플로가 첫 이미지 빌드 후 커밋 sha로 바꾼다
