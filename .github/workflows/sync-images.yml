@@ -79,6 +79,8 @@ jobs:
             fi
             echo "$app: $current -> $sha"
             (cd "$dir" && kustomize edit set image "app=ghcr.io/$OWNER/$app:$sha")
+            # 첫 배포: bootstrap 동안 0이던 replica를 1로 올린다
+            if [ "$current" = "bootstrap" ]; then (cd "$dir" && kustomize edit set replicas "$app=1"); fi
             changed+=("$app:${sha::7}")
           done
           if [ ${#changed[@]} -eq 0 ]; then echo "바뀐 이미지 없음"; exit 0; fi
