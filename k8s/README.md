@@ -40,7 +40,7 @@ apps/
 ## crowfoot-manifests에서 바꾼 점
 
 [crowfoot-erd/crowfoot-manifests](https://github.com/crowfoot-erd/crowfoot-manifests) 구조(ApplicationSet + `apps/*`, 자동 동기화, 서비스별 properties Secret)를 따르고 아래만 바꿨다.
-- **이미지 태그를 kustomization `images`에서 관리**: CI가 `kustomize edit set image`로 바꾼다. deployment.yaml을 `sed`로 고치지 않는다.
+- **이미지 태그를 kustomization `images`에서 관리**: 이 레포의 `.github/workflows/sync-images.yml`이 10분마다 각 서비스의 마지막 성공 이미지를 찾아 `kustomize edit set image`로 바꿔 커밋한다(수동 실행도 가능). 서비스 CI가 이 레포에 쓰지 않으므로 개인 토큰이 필요 없다. deployment.yaml을 `sed`로 고치지 않는다.
 - **`latest` 태그 없음**: sha 태그만 쓴다.
 - **ConfigMap은 configMapGenerator**: 설정이 바뀌면 이름 해시가 바뀌어 자동으로 롤링 재시작된다.
 - **probe를 liveness/readiness로 분리**: `/actuator/health/liveness`, `/actuator/health/readiness`. DB가 잠깐 끊겨도 재시작되지 않고 트래픽만 빠진다.
