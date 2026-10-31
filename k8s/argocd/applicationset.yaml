@@ -1,0 +1,39 @@
+# 4cut 전체 서비스 배포. k8s/apps/* 디렉터리마다 Application이 하나씩 자동으로 생긴다.
+# 서비스 추가 = 디렉터리 추가. CI가 이미지 태그를 커밋하면 자동 동기화한다 (prune + selfHeal).
+# 이 파일만 클러스터에 한 번 적용한다: kubectl -n argocd apply -f k8s/argocd/applicationset.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: fourcut
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+    - git:
+        repoURL: https://github.com/4cut-story/deploy.git
+        revision: main
+        directories:
+          - path: k8s/apps/*
+  template:
+    metadata:
+      name: 'fourcut-{{.path.basename}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/4cut-story/deploy.git
+        targetRevision: main
+        path: '{{.path.path}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: fourcut
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+        retry:
+          limit: 3
+          backoff:
+            duration: 10s
+            factor: 2

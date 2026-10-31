@@ -1,0 +1,64 @@
+# auth-service: 회원, 로그인, JWT
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  labels:
+    app: auth-service
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0   # 갱신 중에도 서빙 pod 수가 줄지 않는다
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull   # GHCR 패키지가 비공개일 때 필요 (README 참고)
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: auth-service
+          image: app   # 실제 이미지·태그는 kustomization.yaml images에서 정한다 (CI가 갱신)
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+          envFrom:
+            - configMapRef:
+                name: auth-service-config
+            - secretRef:
+                name: auth-service-properties   # DB·MinIO·OAuth 등 비밀 값 (README 참고)
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          startupProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 20
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: http }
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              memory: 1Gi

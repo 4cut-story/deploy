@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - deployment.yaml
+  - service.yaml
+# 설정이 바뀌면 이름 해시가 바뀌어 롤링 재시작된다
+configMapGenerator:
+  - name: conversation-service-config
+    literals:
+      - TZ=Asia/Seoul
+      - SERVICES_CONTENT_URL=http://content-service:8080
+      - SERVICES_MODEL_RUNTIME_URL=http://model-runtime:8001
+      - SERVICES_OLLAMA_URL=http://ollama:11434
+images:
+  - name: app
+    newName: ghcr.io/4cut-story/conversation-service
+    newTag: bootstrap   # 첫 CI 빌드가 커밋 sha로 바꾼다

@@ -1,0 +1,50 @@
+---
+# model-runtime: GPU PC(클러스터 밖). 호출하는 쪽은 http://model-runtime:8001 만 안다.
+apiVersion: v1
+kind: Service
+metadata:
+  name: model-runtime
+spec:
+  ports:
+    - name: http
+      port: 8001
+      targetPort: 8001
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: model-runtime-gpu-pc
+  labels:
+    kubernetes.io/service-name: model-runtime
+addressType: IPv4
+ports:
+  - name: http
+    port: 8001
+endpoints:
+  - addresses:
+      - 192.0.2.10   # TODO: GPU PC 고정 IP로 바꾼다
+---
+# ollama: GPU PC(클러스터 밖). 호출하는 쪽은 http://ollama:11434 만 안다.
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+spec:
+  ports:
+    - name: http
+      port: 11434
+      targetPort: 11434
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: ollama-gpu-pc
+  labels:
+    kubernetes.io/service-name: ollama
+addressType: IPv4
+ports:
+  - name: http
+    port: 11434
+endpoints:
+  - addresses:
+      - 192.0.2.10   # TODO: GPU PC 고정 IP로 바꾼다
