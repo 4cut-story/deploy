@@ -40,6 +40,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: api-gateway-config
+            - secretRef:
+                name: api-gateway-properties   # GPU_WORKER_TOKEN (GPU 워커 경로 인증)
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

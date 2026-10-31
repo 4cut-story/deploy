@@ -7,7 +7,6 @@ prod 배포의 단일 원본. Argo CD **ApplicationSet**이 `apps/*` 디렉터�
 ```
 bootstrap/root-app.yaml      # 루트 Application. UI나 kubectl로 한 번만 만든다. argocd/ 를 동기화
 argocd/applicationset.yaml   # apps/* 를 스캔해 앱별 Application 생성 (루트 앱이 관리)
-cluster/gpu-pc.yaml          # 한 번만 kubectl로 적용. GPU PC의 model-runtime(8001), ollama(11434)를 Service + EndpointSlice로 등록
 apps/
   api-gateway/               # 8080
   auth-service/              # 8080
@@ -35,11 +34,11 @@ apps/
    - 결과: `fourcut-root` 아래 ApplicationSet `fourcut`, 그 아래 `fourcut-api-gateway` 등 앱 6개. 이미지가 아직 없는 서비스는 replica 0으로 동기화되고, 첫 이미지가 나오면 sync-images가 1로 올린다.
 2. 네임스페이스 `4cut`에 시크릿 생성 (레포에 넣지 않는다. Rancher에서 만들거나 Sealed Secrets/SOPS로 관리, D9)
    - `ghcr-pull` (docker-registry, read:packages PAT): GHCR 패키지가 비공개일 때만 필요
-   - `<서비스>-properties` (Opaque): `auth-service`, `conversation-service`, `content-service`, `web`
+   - `<서비스>-properties` (Opaque): `api-gateway`(GPU_WORKER_TOKEN), `auth-service`, `conversation-service`, `content-service`, `web`
      - DB: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `DB_SCHEMA`
      - MinIO(conversation, content): `MINIO_ENDPOINT`, `MINIO_REGION`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`
      - OAuth·JWT(auth), 세션 키(web)는 각 서비스 `application-prod.yml` 기준
-3. `cluster/gpu-pc.yaml`의 IP를 GPU PC 고정 IP로 바꾸고 `kubectl -n 4cut apply -f k8s/cluster/gpu-pc.yaml` (Argo CD는 기본 설정에서 EndpointSlice를 동기화하지 않아서 ApplicationSet 밖에 둔다)
+3. GPU PC는 클러스터에 등록하지 않는다. GPU PC 워커가 게이트웨이의 워커 경로(`/internal/gpu-jobs/**`)로 작업을 가져간다(docs 아키텍처 8절). 게이트웨이를 Ingress에 붙일 때 이 경로만 연다.
 4. web Ingress(cert-manager, Let's Encrypt)는 도메인이 정해지면 `apps/web/`에 추가한다
 5. 배포 지연 줄이기 (둘 중 하나)
    - Argo CD가 외부에서 접근되면: 이 레포 Settings → Webhooks에 `https://<argocd 주소>/api/webhook` (push 이벤트) 추가. 커밋 즉시 동기화된다.
@@ -54,5 +53,5 @@ apps/
 - **probe를 liveness/readiness로 분리**: `/actuator/health/liveness`, `/actuator/health/readiness`. DB가 잠깐 끊겨도 재시작되지 않고 트래픽만 빠진다.
 - **보안 기본값**: `runAsNonRoot`, 권한 상승 금지, capability 전부 제거, seccomp RuntimeDefault.
 - **NetworkPolicy**: 호출 방향만 허용한다 (설계 원칙 3).
-- **GPU PC를 Service + EndpointSlice로 등록**: 호출하는 쪽이 실제 위치를 몰라도 된다.
+- **GPU PC는 pull 방식**: 클러스터가 GPU PC를 부르지 않으므로 GPU PC 주소·방화벽 설정이 필요 없다.
 - **replicas 1부터**: 규모에 맞게 시작하고 필요하면 늘린다.
