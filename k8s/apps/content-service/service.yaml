@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: content-service   # common/service-catalog.yaml의 이름·포트와 같다
+  labels:
+    app: content-service
+spec:
+  selector:
+    app: content-service
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

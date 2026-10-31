@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - deployment.yaml
+  - service.yaml
+# 설정이 바뀌면 이름 해시가 바뀌어 롤링 재시작된다
+configMapGenerator:
+  - name: api-gateway-config
+    literals:
+      - TZ=Asia/Seoul
+      - SERVICES_AUTH_URL=http://auth-service:8080
+      - SERVICES_CONVERSATION_URL=http://conversation-service:8080
+      - SERVICES_CONTENT_URL=http://content-service:8080
+images:
+  - name: app
+    newName: ghcr.io/4cut-story/api-gateway
+    newTag: bootstrap   # 첫 CI 빌드가 커밋 sha로 바꾼다
