@@ -1,3 +1,6 @@
+# 클러스터에 한 번만 적용한다: kubectl -n fourcut apply -f k8s/cluster/gpu-pc.yaml
+# Argo CD는 기본 설정에서 Endpoints/EndpointSlice를 동기화 대상에서 빼므로(resource.exclusions)
+# ApplicationSet(apps/*) 밖에 둔다. GPU PC IP가 바뀔 때만 다시 적용한다.
 ---
 # model-runtime: GPU PC(클러스터 밖). 호출하는 쪽은 http://model-runtime:8001 만 안다.
 apiVersion: v1

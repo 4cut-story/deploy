@@ -6,13 +6,13 @@ prod 배포의 단일 원본. Argo CD **ApplicationSet**이 `apps/*` 디렉터�
 
 ```
 argocd/applicationset.yaml   # 클러스터에 한 번만 적용. apps/* 를 스캔해 앱별 Application 생성
+cluster/gpu-pc.yaml          # 한 번만 kubectl로 적용. GPU PC의 model-runtime(8001), ollama(11434)를 Service + EndpointSlice로 등록
 apps/
   api-gateway/               # 8080
   auth-service/              # 8080
   conversation-service/      # 8080
   content-service/           # 8080
   web/                       # 3000 (외부 공개는 이것만)
-  external/                  # GPU PC의 model-runtime(8001), ollama(11434)를 Service + EndpointSlice로 등록
   network-policies/          # 들어오는 트래픽 기본 차단 + 허용 방향
 ```
 
@@ -27,14 +27,14 @@ apps/
 
 ## 처음 한 번 할 일
 
-1. `kubectl -n argocd apply -f k8s/argocd/applicationset.yaml`
+1. `kubectl -n argocd apply -f k8s/argocd/applicationset.yaml` (레포 등록은 공개 레포라 인증 없이 https URL만 있으면 된다). 이미지가 아직 없는 서비스는 replica 0으로 동기화되고, 첫 이미지가 나오면 sync-images가 1로 올린다.
 2. 네임스페이스 `fourcut`에 시크릿 생성 (레포에 넣지 않는다. Rancher에서 만들거나 Sealed Secrets/SOPS로 관리, D9)
    - `ghcr-pull` (docker-registry, read:packages PAT): GHCR 패키지가 비공개일 때만 필요
    - `<서비스>-properties` (Opaque): `auth-service`, `conversation-service`, `content-service`, `web`
      - DB: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `DB_SCHEMA`
      - MinIO(conversation, content): `MINIO_ENDPOINT`, `MINIO_REGION`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`
      - OAuth·JWT(auth), 세션 키(web)는 각 서비스 `application-prod.yml` 기준
-3. `apps/external/gpu-pc.yaml`의 IP를 GPU PC 고정 IP로 바꾼다
+3. `cluster/gpu-pc.yaml`의 IP를 GPU PC 고정 IP로 바꾸고 `kubectl -n fourcut apply -f k8s/cluster/gpu-pc.yaml` (Argo CD는 기본 설정에서 EndpointSlice를 동기화하지 않아서 ApplicationSet 밖에 둔다)
 4. web Ingress(cert-manager, Let's Encrypt)는 도메인이 정해지면 `apps/web/`에 추가한다
 5. 배포 지연 줄이기 (둘 중 하나)
    - Argo CD가 외부에서 접근되면: 이 레포 Settings → Webhooks에 `https://<argocd 주소>/api/webhook` (push 이벤트) 추가. 커밋 즉시 동기화된다.
