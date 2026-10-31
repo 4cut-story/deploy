@@ -25,7 +25,7 @@ spec:
         path: '{{.path.path}}'
       destination:
         server: https://kubernetes.default.svc
-        namespace: fourcut
+        namespace: 4cut   # 서비스가 배포되는 네임스페이스 (Application 자체는 argocd에 있다)
       syncPolicy:
         automated:
           prune: true
