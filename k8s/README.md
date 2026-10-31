@@ -17,7 +17,7 @@ apps/
   network-policies/          # 들어오는 트래픽 기본 차단 + 허용 방향
 ```
 
-서비스 디렉터리는 `kustomization.yaml`(이미지 태그, ConfigMap) + `deployment.yaml` + `service.yaml`. 이름·포트는 `common/service-catalog.yaml`과 같다. 네임스페이스는 `fourcut`.
+서비스 디렉터리는 `kustomization.yaml`(이미지 태그, ConfigMap) + `deployment.yaml` + `service.yaml`. 이름·포트는 `common/service-catalog.yaml`과 같다. 네임스페이스는 `4cut` (ApplicationSet이 정한다. 매니페스트에는 namespace를 적지 않는다).
 
 ## 배포 흐름
 
@@ -30,15 +30,16 @@ apps/
 
 1. ApplicationSet 만들기. Argo CD에 레포를 등록하는 것만으로는 아무 앱도 생기지 않는다(레포 등록 = 접속 정보만 저장). 루트 Application 하나를 만들면 그것이 `k8s/argocd/`의 ApplicationSet을 만들고, ApplicationSet이 `apps/*`마다 앱을 만든다(app-of-apps).
    - UI: **+ NEW APP** → Application Name `fourcut-root`, Project `default`, Sync Policy `Automatic`(PRUNE, SELF HEAL 체크) → Repository URL `https://github.com/4cut-story/deploy.git`, Revision `main`, Path `k8s/argocd` → Cluster URL `https://kubernetes.default.svc`, Namespace `argocd` → **CREATE**
+     - 여기 Namespace `argocd`는 루트 앱이 ApplicationSet을 만드는 곳이다. ApplicationSet·Application 객체는 Argo CD가 읽는 `argocd` 네임스페이스에 있어야 한다(apps-in-any-namespace를 켜지 않은 기본 설정). 서비스 pod·Service는 ApplicationSet의 destination인 `4cut`에 만들어지고, 없으면 자동 생성된다(CreateNamespace).
    - 또는 CLI: `kubectl -n argocd apply -f k8s/bootstrap/root-app.yaml` (같은 내용)
    - 결과: `fourcut-root` 아래 ApplicationSet `fourcut`, 그 아래 `fourcut-api-gateway` 등 앱 6개. 이미지가 아직 없는 서비스는 replica 0으로 동기화되고, 첫 이미지가 나오면 sync-images가 1로 올린다.
-2. 네임스페이스 `fourcut`에 시크릿 생성 (레포에 넣지 않는다. Rancher에서 만들거나 Sealed Secrets/SOPS로 관리, D9)
+2. 네임스페이스 `4cut`에 시크릿 생성 (레포에 넣지 않는다. Rancher에서 만들거나 Sealed Secrets/SOPS로 관리, D9)
    - `ghcr-pull` (docker-registry, read:packages PAT): GHCR 패키지가 비공개일 때만 필요
    - `<서비스>-properties` (Opaque): `auth-service`, `conversation-service`, `content-service`, `web`
      - DB: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `DB_SCHEMA`
      - MinIO(conversation, content): `MINIO_ENDPOINT`, `MINIO_REGION`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`
      - OAuth·JWT(auth), 세션 키(web)는 각 서비스 `application-prod.yml` 기준
-3. `cluster/gpu-pc.yaml`의 IP를 GPU PC 고정 IP로 바꾸고 `kubectl -n fourcut apply -f k8s/cluster/gpu-pc.yaml` (Argo CD는 기본 설정에서 EndpointSlice를 동기화하지 않아서 ApplicationSet 밖에 둔다)
+3. `cluster/gpu-pc.yaml`의 IP를 GPU PC 고정 IP로 바꾸고 `kubectl -n 4cut apply -f k8s/cluster/gpu-pc.yaml` (Argo CD는 기본 설정에서 EndpointSlice를 동기화하지 않아서 ApplicationSet 밖에 둔다)
 4. web Ingress(cert-manager, Let's Encrypt)는 도메인이 정해지면 `apps/web/`에 추가한다
 5. 배포 지연 줄이기 (둘 중 하나)
    - Argo CD가 외부에서 접근되면: 이 레포 Settings → Webhooks에 `https://<argocd 주소>/api/webhook` (push 이벤트) 추가. 커밋 즉시 동기화된다.
