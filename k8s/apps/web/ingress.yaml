@@ -1,0 +1,28 @@
+# 외부 공개 입구. 호스트 하나(4cut.java21.net)에 두 경로만 연다.
+#   /                    → web (화면, BFF)
+#   /internal/gpu-jobs   → api-gateway (GPU PC 워커 전용. 게이트웨이가 GPU_WORKER_TOKEN을 확인한다)
+# 그 밖의 백엔드 경로(/api, 다른 /internal)는 외부에 열지 않는다. 브라우저는 web을 통해서만 들어온다.
+# ingressClassName은 비워 두어 클러스터 기본 클래스를 쓴다. TLS(cert-manager)는 정해지면 추가한다.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: 4cut-web
+spec:
+  rules:
+    - host: 4cut.java21.net
+      http:
+        paths:
+          - path: /internal/gpu-jobs
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  name: http
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  name: http
