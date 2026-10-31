@@ -8,6 +8,8 @@ configMapGenerator:
 - literals:
   - TZ=Asia/Seoul
   - PUBLIC_BASE_URL=https://4cut.java21.net
+  - SERVICES_CONVERSATION_URL=http://conversation-service:8080
+  - SERVICES_CONTENT_URL=http://content-service:8080
   name: auth-service-config
 # 첫 이미지가 나오기 전(bootstrap)에는 pod를 띄우지 않는다. sync-images가 첫 sha를 넣을 때 1로 올린다.
 # 이후 replica 수는 여기서 바꾼다 (deployment.yaml보다 우선).

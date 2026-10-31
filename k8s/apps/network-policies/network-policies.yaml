@@ -81,6 +81,9 @@ spec:
         - podSelector:
             matchLabels:
               app: api-gateway
+        - podSelector:   # 탈퇴 정리 DELETE /internal/users/{userId}/data
+            matchLabels:
+              app: auth-service
       ports:
         - port: 8080
 ---
@@ -101,5 +104,8 @@ spec:
         - podSelector:
             matchLabels:
               app: conversation-service
+        - podSelector:   # 탈퇴 정리 DELETE /internal/users/{userId}/data
+            matchLabels:
+              app: auth-service
       ports:
         - port: 8080
