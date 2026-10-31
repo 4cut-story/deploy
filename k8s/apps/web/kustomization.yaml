@@ -10,6 +10,7 @@ configMapGenerator:
     literals:
       - TZ=Asia/Seoul
       - SERVICES_GATEWAY_URL=http://api-gateway:8080
+      - PUBLIC_BASE_URL=https://4cut.java21.net   # 쿠키 Secure·리디렉트 기준. 요청 헤더의 scheme을 믿지 않는다
 # 첫 이미지가 나오기 전(bootstrap)에는 pod를 띄우지 않는다. sync-images가 첫 sha를 넣을 때 1로 올린다.
 # 이후 replica 수는 여기서 바꾼다 (deployment.yaml보다 우선).
 replicas:
