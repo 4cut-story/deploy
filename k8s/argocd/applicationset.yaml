@@ -1,6 +1,6 @@
 # 4cut 전체 서비스 배포. k8s/apps/* 디렉터리마다 Application이 하나씩 자동으로 생긴다.
 # 서비스 추가 = 디렉터리 추가. CI가 이미지 태그를 커밋하면 자동 동기화한다 (prune + selfHeal).
-# 이 파일만 클러스터에 한 번 적용한다: kubectl -n argocd apply -f k8s/argocd/applicationset.yaml
+# 루트 Application(k8s/bootstrap/root-app.yaml)이 이 파일을 동기화한다. 직접 적용하지 않는다.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
