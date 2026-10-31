@@ -1,3 +1,5 @@
 .env
 *.decrypted.yaml
 .DS_Store
+.env.*
+!.env.example
