@@ -1,0 +1,22 @@
+# 루트 Application (app-of-apps). k8s/argocd/ 를 동기화해 ApplicationSet을 만들고 관리한다.
+# Argo CD UI에서 같은 값으로 "NEW APP"을 만들어도 되고, kubectl로 한 번 적용해도 된다:
+#   kubectl -n argocd apply -f k8s/bootstrap/root-app.yaml
+# 이후 ApplicationSet을 바꾸려면 k8s/argocd/applicationset.yaml 을 고쳐 main에 머지한다.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fourcut-root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/4cut-story/deploy.git
+    targetRevision: main
+    path: k8s/argocd
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
