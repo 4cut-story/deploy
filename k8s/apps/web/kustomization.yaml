@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - deployment.yaml
   - service.yaml
+  - ingress.yaml
 # 설정이 바뀌면 이름 해시가 바뀌어 롤링 재시작된다
 configMapGenerator:
   - name: web-config

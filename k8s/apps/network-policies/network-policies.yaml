@@ -1,4 +1,4 @@
-# 호출 방향 (architecture.md 12절): ingress → web → api-gateway → auth/conversation/content, conversation → content
+# 호출 방향 (architecture.md 12절): ingress → web(/), ingress → api-gateway(/internal/gpu-jobs만), web → api-gateway → auth/conversation/content, conversation → content
 # 들어오는 트래픽은 기본 차단하고 아래 방향만 연다. 나가는 트래픽(DB·MinIO)은 막지 않는다. GPU PC는 클러스터가 부르지 않는다(pull).
 ---
 apiVersion: networking.k8s.io/v1
@@ -20,9 +20,11 @@ spec:
   policyTypes: [Ingress]
   ingress:
     - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: ingress-nginx
+        - namespaceSelector:   # Ingress 컨트롤러 (일반 설치: ingress-nginx, Rancher RKE2: kube-system)
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values: [ingress-nginx, kube-system]
       ports:
         - port: 3000
 ---
@@ -40,6 +42,11 @@ spec:
         - podSelector:
             matchLabels:
               app: web
+        - namespaceSelector:   # GPU 워커 경로(/internal/gpu-jobs)만 Ingress로 들어온다
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values: [ingress-nginx, kube-system]
       ports:
         - port: 8080
 ---
