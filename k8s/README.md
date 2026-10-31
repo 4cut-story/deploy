@@ -21,8 +21,8 @@ apps/
 ## 배포 흐름
 
 1. 서비스 레포 main에 머지 → CI(common 재사용 워크플로)가 테스트·정적 분석 → GHCR `:<sha>` 이미지 푸시
-2. 같은 CI가 이 레포 `k8s/apps/<서비스>/kustomization.yaml`의 `images[].newTag`를 sha로 커밋
-3. ApplicationSet이 변경을 감지해 자동 동기화
+2. 같은 CI의 `notify-deploy` 잡이 이 레포 `sync-images.yml`을 바로 실행 → `k8s/apps/<서비스>/kustomization.yaml`의 `images[].newTag`를 sha로 커밋 (토큰이 없거나 실패하면 10분 폴링이 대신 반영)
+3. ApplicationSet이 변경을 감지해 자동 동기화 (Argo CD 기본 git 확인 주기는 3분. 아래 5번으로 줄인다)
 4. 롤백: 이 레포에서 해당 커밋을 되돌린다
 
 ## 처음 한 번 할 일
@@ -36,11 +36,14 @@ apps/
      - OAuth·JWT(auth), 세션 키(web)는 각 서비스 `application-prod.yml` 기준
 3. `apps/external/gpu-pc.yaml`의 IP를 GPU PC 고정 IP로 바꾼다
 4. web Ingress(cert-manager, Let's Encrypt)는 도메인이 정해지면 `apps/web/`에 추가한다
+5. 배포 지연 줄이기 (둘 중 하나)
+   - Argo CD가 외부에서 접근되면: 이 레포 Settings → Webhooks에 `https://<argocd 주소>/api/webhook` (push 이벤트) 추가. 커밋 즉시 동기화된다.
+   - 접근되지 않으면: `argocd-cm`에 `timeout.reconciliation: 60s`를 넣고 `argocd-repo-server`·`argocd-application-controller`를 재시작한다. 최대 1분.
 
 ## crowfoot-manifests에서 바꾼 점
 
 [crowfoot-erd/crowfoot-manifests](https://github.com/crowfoot-erd/crowfoot-manifests) 구조(ApplicationSet + `apps/*`, 자동 동기화, 서비스별 properties Secret)를 따르고 아래만 바꿨다.
-- **이미지 태그를 kustomization `images`에서 관리**: 이 레포의 `.github/workflows/sync-images.yml`이 10분마다 각 서비스의 마지막 성공 이미지를 찾아 `kustomize edit set image`로 바꿔 커밋한다(수동 실행도 가능). 서비스 CI가 이 레포에 쓰지 않으므로 개인 토큰이 필요 없다. deployment.yaml을 `sed`로 고치지 않는다.
+- **이미지 태그를 kustomization `images`에서 관리**: 이 레포의 `.github/workflows/sync-images.yml`이 `kustomize edit set image`로 바꿔 커밋한다. 서비스 CI가 이미지를 올린 직후 이 워크플로를 바로 실행하고(토큰은 이 워크플로 실행 권한만), 10분 폴링이 백업으로 남는다. 커밋은 이 레포 `GITHUB_TOKEN`으로 한다. deployment.yaml을 `sed`로 고치지 않는다.
 - **`latest` 태그 없음**: sha 태그만 쓴다.
 - **ConfigMap은 configMapGenerator**: 설정이 바뀌면 이름 해시가 바뀌어 자동으로 롤링 재시작된다.
 - **probe를 liveness/readiness로 분리**: `/actuator/health/liveness`, `/actuator/health/readiness`. DB가 잠깐 끊겨도 재시작되지 않고 트래픽만 빠진다.
