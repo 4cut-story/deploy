@@ -38,6 +38,8 @@ apps/
      - DB: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `DB_SCHEMA`
      - MinIO(conversation, content): `MINIO_ENDPOINT`, `MINIO_REGION`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`
      - OAuth·JWT(auth), 세션 키(web)는 각 서비스 `application-prod.yml` 기준
+     - 값 형식: `DB_URL`은 `jdbc:postgresql://10.116.64.13:8000/nhnacademy?currentSchema=cf_u2_d1`처럼 전체 JDBC URL, `MINIO_ENDPOINT`는 `http://storage.java21.net`(스킴 포함). 따옴표·공백 없이 넣는다
+   - **MinIO 주소**: 서명 URL에는 호스트가 서명에 들어가므로 클러스터 안(web·content·conversation)과 GPU PC가 같은 이름 `storage.java21.net`을 쓴다. 클러스터 안에서는 공인 주소로 돌아 나갈 수 없어 세 deployment의 `hostAliases`가 이 이름을 내부 IP `10.116.64.12`로 보낸다. GPU PC가 내부망으로 옮기면 그 PC의 hosts 파일에 `10.116.64.12 storage.java21.net`(필요하면 `4cut.java21.net`도)을 넣는다
 3. GPU PC는 클러스터에 등록하지 않는다. GPU PC 워커가 게이트웨이의 워커 경로(`/internal/gpu-jobs/**`)로 작업을 가져간다(docs 아키텍처 8절). Ingress(`apps/web/ingress.yaml`)는 게이트웨이의 이 경로만 연다. GPU PC 워커의 `GPU_WORKER_API_URL`은 `https://4cut.java21.net` (HTTPS를 붙인 뒤. 토큰이 평문으로 다니지 않게 한다).
 4. Ingress는 `apps/web/ingress.yaml` (호스트 `4cut.java21.net`, `/` → web, `/internal/gpu-jobs` → api-gateway). Argo CD가 관리한다. HTTPS는 앞단 nginx(storage.java21.net과 같은 서버, Let's Encrypt)가 처리하고 `http://10.116.64.12:30645`(Ingress 컨트롤러 NodePort)로 넘기므로 클러스터에는 cert-manager가 없다. 앱은 공개 주소를 `PUBLIC_BASE_URL`(`https://4cut.java21.net`)로 알고, 쿠키 Secure·OAuth redirect_uri·절대 URL을 이 값으로 만든다(요청의 scheme을 믿지 않는다). 앞단 nginx는 http→https 리디렉트, `Host`·`X-Forwarded-Proto` 전달, `client_max_body_size`(녹음 업로드 크기 이상)를 둔다
 5. 배포 지연 줄이기 (둘 중 하나)
