@@ -1,5 +1,5 @@
 # 호출 방향 (architecture.md 12절): ingress → web → api-gateway → auth/conversation/content, conversation → content
-# 들어오는 트래픽은 기본 차단하고 아래 방향만 연다. 나가는 트래픽(DB·MinIO·GPU PC)은 막지 않는다.
+# 들어오는 트래픽은 기본 차단하고 아래 방향만 연다. 나가는 트래픽(DB·MinIO)은 막지 않는다. GPU PC는 클러스터가 부르지 않는다(pull).
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
