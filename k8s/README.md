@@ -38,15 +38,7 @@ apps/
      - DB: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `DB_SCHEMA`
      - MinIO(conversation, content): `MINIO_ENDPOINT`, `MINIO_REGION`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`
      - OAuth·JWT(auth), 세션 키(web)는 각 서비스 `application-prod.yml` 기준
-     - JWT 서명 키(auth): `JWT_PRIVATE_KEY`(RSA 2048, PKCS#8 PEM). 없으면 auth-service가 시작할 때마다 임시 키를 만들어 재시작마다 모든 Access Token이 무효가 되고, replicas를 늘리면 파드마다 키가 달라 로그인이 깨진다. 키는 클러스터를 다루는 PC에서 만들어 바로 넣고 파일은 지운다. `JWT_KEY_ID`는 비워 두면 키 지문이 kid가 된다
-       ```bash
-       openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out jwt.pem
-       kubectl -n 4cut patch secret auth-service-properties --type merge \
-         -p "{\"data\":{\"JWT_PRIVATE_KEY\":\"$(base64 -w0 jwt.pem)\"}}"
-       rm jwt.pem
-       kubectl -n 4cut rollout restart deploy auth-service
-       ```
-       키를 바꾸면 그 전에 받은 Access Token은 무효가 되고 web이 Refresh Token으로 다시 받는다. 게이트웨이는 모르는 kid를 보고 JWKS를 다시 받는다
+     - JWT 서명 키(auth): 넣지 않아도 된다. auth-service가 처음 뜰 때 키를 만들어 DB `signing_keys`에 두고, 재시작하거나 파드가 늘어도 그 키를 같이 쓴다. 키를 DB 밖에 두고 싶을 때만 `JWT_PRIVATE_KEY`(RSA 2048, PKCS#8 PEM)를 넣으면 그 키가 우선한다
      - 값 형식: `DB_URL`은 `jdbc:postgresql://10.116.64.13:8000/nhnacademy?currentSchema=cf_u2_d1`처럼 전체 JDBC URL, `MINIO_ENDPOINT`는 `http://storage.java21.net:8000`(S3 API. 443은 MinIO Console이라 쓰지 않는다). 따옴표·공백 없이 넣는다
    - **MinIO 주소**: 서명 URL에는 호스트가 서명에 들어가므로 클러스터 안(web·content·conversation)과 GPU PC가 같은 이름 `storage.java21.net`을 쓴다. 클러스터 안에서는 공인 주소로 돌아 나갈 수 없어 세 deployment의 `hostAliases`가 이 이름을 내부 IP `10.116.64.12`로 보낸다. GPU PC가 내부망으로 옮기면 그 PC의 hosts 파일에 `10.116.64.12 storage.java21.net`(필요하면 `4cut.java21.net`도)을 넣는다
 3. GPU PC는 클러스터에 등록하지 않는다. GPU PC 워커가 게이트웨이의 워커 경로(`/internal/gpu-jobs/**`)로 작업을 가져간다(docs 아키텍처 8절). Ingress(`apps/web/ingress.yaml`)는 게이트웨이의 이 경로만 연다. GPU PC 워커의 `GPU_WORKER_API_URL`은 `https://4cut.java21.net` (HTTPS를 붙인 뒤. 토큰이 평문으로 다니지 않게 한다).
