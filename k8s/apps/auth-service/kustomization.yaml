@@ -19,4 +19,4 @@ replicas:
 images:
 - name: app
   newName: ghcr.io/4cut-story/auth-service
-  newTag: 09061029f4b7cf7a0a764f11db7495a61f24a210
+  newTag: a0c9b4f12fc93b1c4f27a2e99a1b6b874bff2e76
