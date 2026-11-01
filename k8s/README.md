@@ -38,11 +38,24 @@ apps/
      - DB: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `DB_SCHEMA`
      - MinIO(conversation, content): `MINIO_ENDPOINT`, `MINIO_REGION`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`
      - OAuth·JWT(auth), 세션 키(web)는 각 서비스 `application-prod.yml` 기준
+     - JWT 서명 키(auth): `JWT_PRIVATE_KEY`(RSA 2048, PKCS#8 PEM). 없으면 auth-service가 시작할 때마다 임시 키를 만들어 재시작마다 모든 Access Token이 무효가 되고, replicas를 늘리면 파드마다 키가 달라 로그인이 깨진다. 키는 클러스터를 다루는 PC에서 만들어 바로 넣고 파일은 지운다. `JWT_KEY_ID`는 비워 두면 키 지문이 kid가 된다
+       ```bash
+       openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out jwt.pem
+       kubectl -n 4cut patch secret auth-service-properties --type merge \
+         -p "{\"data\":{\"JWT_PRIVATE_KEY\":\"$(base64 -w0 jwt.pem)\"}}"
+       rm jwt.pem
+       kubectl -n 4cut rollout restart deploy auth-service
+       ```
+       키를 바꾸면 그 전에 받은 Access Token은 무효가 되고 web이 Refresh Token으로 다시 받는다. 게이트웨이는 모르는 kid를 보고 JWKS를 다시 받는다
      - 값 형식: `DB_URL`은 `jdbc:postgresql://10.116.64.13:8000/nhnacademy?currentSchema=cf_u2_d1`처럼 전체 JDBC URL, `MINIO_ENDPOINT`는 `http://storage.java21.net:8000`(S3 API. 443은 MinIO Console이라 쓰지 않는다). 따옴표·공백 없이 넣는다
    - **MinIO 주소**: 서명 URL에는 호스트가 서명에 들어가므로 클러스터 안(web·content·conversation)과 GPU PC가 같은 이름 `storage.java21.net`을 쓴다. 클러스터 안에서는 공인 주소로 돌아 나갈 수 없어 세 deployment의 `hostAliases`가 이 이름을 내부 IP `10.116.64.12`로 보낸다. GPU PC가 내부망으로 옮기면 그 PC의 hosts 파일에 `10.116.64.12 storage.java21.net`(필요하면 `4cut.java21.net`도)을 넣는다
 3. GPU PC는 클러스터에 등록하지 않는다. GPU PC 워커가 게이트웨이의 워커 경로(`/internal/gpu-jobs/**`)로 작업을 가져간다(docs 아키텍처 8절). Ingress(`apps/web/ingress.yaml`)는 게이트웨이의 이 경로만 연다. GPU PC 워커의 `GPU_WORKER_API_URL`은 `https://4cut.java21.net` (HTTPS를 붙인 뒤. 토큰이 평문으로 다니지 않게 한다).
 4. Ingress는 `apps/web/ingress.yaml` (호스트 `4cut.java21.net`, `/` → web, `/internal/gpu-jobs` → api-gateway). Argo CD가 관리한다. HTTPS는 앞단 nginx(storage.java21.net과 같은 서버, Let's Encrypt)가 처리하고 `http://10.116.64.12:30645`(Ingress 컨트롤러 NodePort)로 넘기므로 클러스터에는 cert-manager가 없다. 앱은 공개 주소를 `PUBLIC_BASE_URL`(`https://4cut.java21.net`)로 알고, 쿠키 Secure·OAuth redirect_uri·절대 URL을 이 값으로 만든다(요청의 scheme을 믿지 않는다). 앞단 nginx는 http→https 리디렉트, `Host`·`X-Forwarded-Proto` 전달, `client_max_body_size`(녹음 업로드 크기 이상)를 둔다
-5. 배포 지연 줄이기 (둘 중 하나)
+5. **MinIO S3 API를 HTTPS로 (아직 안 함)**: 지금 `MINIO_ENDPOINT`가 `http://storage.java21.net:8000`이라 서명 URL로 오가는 녹음·이미지가 암호화되지 않는다. 서명에 `호스트:포트`가 들어가므로 클러스터 안·GPU PC·서비스가 모두 같은 `https://호스트:포트`를 써야 한다. 8000 포트를 지금 무엇이 받는지에 따라 둘 중 하나로 한다
+   - 8000을 MinIO가 직접 받으면: MinIO에 인증서를 준다. `storage.java21.net`의 Let's Encrypt `fullchain.pem`·`privkey.pem`을 MinIO 인증서 폴더(`${HOME}/.minio/certs` 또는 `--certs-dir`)에 `public.crt`·`private.key`로 복사하고 MinIO를 재시작한다. 갱신 때도 복사하도록 certbot `--deploy-hook`을 건다. 그러면 8000이 https만 받으므로 `MINIO_ENDPOINT`를 `https://storage.java21.net:8000`으로 같은 때에 바꾼다
+   - 앞단 nginx를 거치게 하려면: nginx에 TLS 포트 하나(예: 9443, `server_name storage.java21.net`, 같은 인증서)를 열어 `http://127.0.0.1:8000`으로 넘긴다. `proxy_set_header Host $http_host`(포트까지 그대로 넘겨야 서명이 맞는다), `client_max_body_size 0`, `proxy_request_buffering off`, `proxy_buffering off`를 둔다. `MINIO_ENDPOINT`를 `https://storage.java21.net:9443`으로 바꾸고 방화벽에서 9443을 연다. http 8000은 바꾼 뒤 내부에만 남긴다
+   - 어느 쪽이든 클러스터 안은 `hostAliases`로 `10.116.64.12`에 닿으므로 그대로 둔다. 바꾼 뒤 `curl -sI https://storage.java21.net:<포트>/minio/health/live`가 200이어야 하고, conversation·content를 재시작한 뒤 녹음 하나를 끝까지 돌려 본다
+6. 배포 지연 줄이기 (둘 중 하나)
    - Argo CD가 외부에서 접근되면: 이 레포 Settings → Webhooks에 `https://<argocd 주소>/api/webhook` (push 이벤트) 추가. 커밋 즉시 동기화된다.
    - 접근되지 않으면: `argocd-cm`에 `timeout.reconciliation: 60s`를 넣고 `argocd-repo-server`·`argocd-application-controller`를 재시작한다. 최대 1분.
 
