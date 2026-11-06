@@ -28,6 +28,9 @@ spec:
       hostAliases:
         - ip: 10.116.64.12
           hostnames: [storage.java21.net]
+        # 임베딩 서버(emb.java21.net)도 공인 주소는 학교 필터에 막혀 내부 주소로 보낸다.
+        - ip: 10.116.64.13
+          hostnames: [emb.java21.net]
       terminationGracePeriodSeconds: 30
       securityContext:
         runAsNonRoot: true
