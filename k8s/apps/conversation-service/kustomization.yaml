@@ -4,11 +4,11 @@ resources:
 - deployment.yaml
 - service.yaml
 # 설정이 바뀌면 이름 해시가 바뀌어 롤링 재시작된다
+  # 하루 만화 수 제한에서 뺄 사용자 공개 ID (marco 계정: 테스트 회차·스토리 게시)
 configMapGenerator:
 - literals:
   - TZ=Asia/Seoul
   - SERVICES_CONTENT_URL=http://content-service:8080
-  # 하루 만화 수 제한에서 뺄 사용자 공개 ID (marco 계정: 테스트 회차·스토리 게시)
   - CONVERSATION_DAILY_LIMIT_EXEMPT=wzIaZlDUXRxEKc90FfL1s
   name: conversation-service-config
 # 첫 이미지가 나오기 전(bootstrap)에는 pod를 띄우지 않는다. sync-images가 첫 sha를 넣을 때 1로 올린다.
@@ -19,4 +19,4 @@ replicas:
 images:
 - name: app
   newName: ghcr.io/4cut-story/conversation-service
-  newTag: 1679199d6d22d8d01915bf5b9ae32c94a5ce5471
+  newTag: c2d49b5d0b9694ce8c42f0421e5fd25d0f0c7e5b
