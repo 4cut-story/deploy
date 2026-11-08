@@ -42,6 +42,9 @@ spec:
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: prod
+            # 그림으로 만화 등록(POST /api/v1/comics)을 쓸 수 있는 사용자 ID. 모델 비교 시험 만화를 올리는 marco 계정
+            - name: COMIC_IMPORT_USERS
+              value: wzIaZlDUXRxEKc90FfL1s
           envFrom:
             - configMapRef:
                 name: content-service-config
