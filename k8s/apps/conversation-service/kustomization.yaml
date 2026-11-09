@@ -10,6 +10,8 @@ configMapGenerator:
   - TZ=Asia/Seoul
   - SERVICES_CONTENT_URL=http://content-service:8080
   - CONVERSATION_DAILY_LIMIT_EXEMPT=wzIaZlDUXRxEKc90FfL1s
+  # 물건을 드는 컷·두 사람이 겹치는 컷을 두 번에 나눠 그린다 (먼저 빈손·앞사람, 그 위에 물건·뒷사람)
+  - COMIC_TWO_PASS=true
   name: conversation-service-config
 # 첫 이미지가 나오기 전(bootstrap)에는 pod를 띄우지 않는다. sync-images가 첫 sha를 넣을 때 1로 올린다.
 # 이후 replica 수는 여기서 바꾼다 (deployment.yaml보다 우선).
