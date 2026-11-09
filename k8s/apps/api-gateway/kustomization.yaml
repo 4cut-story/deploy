@@ -19,4 +19,4 @@ replicas:
 images:
 - name: app
   newName: ghcr.io/4cut-story/api-gateway
-  newTag: 89db3a889b02d484a80626fd2b3ed826beb2cb8e
+  newTag: 9d8601a58ea9e60e2df048a740f11066f68d7fcd
