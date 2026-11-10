@@ -19,4 +19,4 @@ replicas:
 images:
 - name: app
   newName: ghcr.io/4cut-story/web
-  newTag: 2a5c6d5024553ebef776463d0f724decd3bfb3a0
+  newTag: 36be80c84846365f7748468489d0b706ced025dc
