@@ -21,4 +21,4 @@ replicas:
 images:
 - name: app
   newName: ghcr.io/4cut-story/conversation-service
-  newTag: 805ab526b601ca636bfb533d276b752e081c5945
+  newTag: a8c0c7da51ddb24fb2b0978e7f0f606d36d95ece
