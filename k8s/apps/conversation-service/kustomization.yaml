@@ -6,12 +6,14 @@ resources:
 # 설정이 바뀌면 이름 해시가 바뀌어 롤링 재시작된다
   # 하루 만화 수 제한에서 뺄 사용자 공개 ID (marco 계정: 테스트 회차·스토리 게시)
   # 물건을 드는 컷·두 사람이 겹치는 컷을 두 번에 나눠 그린다 (먼저 빈손·앞사람, 그 위에 물건·뒷사람)
+  # 라이브 모드 대사 음성 (GPU 워커 SPEECH_ENABLED=true, GPT-SoVITS v4 서버가 떠 있을 때)
 configMapGenerator:
 - literals:
   - TZ=Asia/Seoul
   - SERVICES_CONTENT_URL=http://content-service:8080
   - CONVERSATION_DAILY_LIMIT_EXEMPT=wzIaZlDUXRxEKc90FfL1s
   - COMIC_TWO_PASS=true
+  - COMIC_SPEECH_ENABLED=true
   name: conversation-service-config
 # 첫 이미지가 나오기 전(bootstrap)에는 pod를 띄우지 않는다. sync-images가 첫 sha를 넣을 때 1로 올린다.
 # 이후 replica 수는 여기서 바꾼다 (deployment.yaml보다 우선).
